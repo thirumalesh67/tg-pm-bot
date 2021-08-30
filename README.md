@@ -4,12 +4,12 @@
 
 ### Step1:
 
-*Run Setup.py to create a local sqlite db*
+*Run _Setup.py_ to create a local sqlite db*
 
 ### Step2:
 
-Run manager.py to create sessions/tg accounts.
+*Run _manager.py_ to create sessions/tg accounts.*
 
 ### Step3:
 
-Run app.py to send messages to members in a group by providing public/private group urls.
+*Run _app.py_ to send messages to members in a group by providing public/private group urls.*
