@@ -115,7 +115,7 @@ class DB:
 
     def get_job_to_be_sent_users(self, job_id):
         self.cursor.execute(f'''
-            SELECT UserId, UserHash, ID FROM JobDetails WHERE Status IS NULL AND JobID = {job_id}
+            SELECT UserId, UserHash, ID, UserName FROM JobDetails WHERE Status IS NULL AND JobID = {job_id}
         ''')
         users = self.cursor.fetchall()
         return users

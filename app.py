@@ -1,8 +1,10 @@
+from asyncio.events import new_event_loop
+from re import S
 from telethon.hints import Username
 from setup import DB
 from telethon.sync import TelegramClient
 from telethon.tl.types import InputPeerChannel, InputPeerUser
-from telethon.errors.rpcerrorlist import MegagroupIdInvalidError, PeerFloodError, UserPrivacyRestrictedError, PhoneNumberBannedError, ChatAdminRequiredError
+from telethon.errors.rpcerrorlist import ActiveUserRequiredError, MegagroupIdInvalidError, PeerFloodError, UserPrivacyRestrictedError, PhoneNumberBannedError, ChatAdminRequiredError
 from telethon.errors.rpcerrorlist import ChatWriteForbiddenError, UserBannedInChannelError, UserAlreadyParticipantError, FloodWaitError
 from telethon.tl.functions.channels import InviteToChannelRequest
 import sys
@@ -10,6 +12,7 @@ from telethon.tl.functions.messages import ImportChatInviteRequest, AddChatUserR
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.types import UserStatusRecently
 import time
+import asyncio
 
 
 db = DB()
@@ -46,37 +49,40 @@ for a in sessions:
 def get_message(group_id, group_title):
     message = str(input("Enter the Message to be sent: "))
     job_id = db.create_job(f"Message to Group Users {group_title}", group_id,group_title,message)
-
     print(f"\nJob Created to Send message to Group Users {group_title}\n")
     print(f"Refer to the Job Id: {job_id} for resuming the job later.")
     db.create_job_details(job_id, group_id)
-    send_message_pre(job_id)
+    asyncio.set_event_loop(asyncio.new_event_loop())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(send_message_pre(job_id))
 
-def get_active_clients():
+async def get_active_clients():
     clients = []
     for session in sessions:
         try:
             c = TelegramClient(f'sessions/{session[0]}',  3910389 , '86f861352f0ab76a251866059a6adbd6')
-            c.start(session[0])
+            await c.start(session[0])
             clients.append(c)
         except:
             continue
     return clients
 
-def send_message_pre(job_id):
+
+
+async def send_message_pre(job_id):
     job_details = db.get_job_details(job_id)
     if len(job_details) == 0:
         print('Invalid Job ID')
         exit()
     message = job_details[0][4]
     users = db.get_job_to_be_sent_users(job_id)
-    clients = get_active_clients()
+    clients = await get_active_clients()
+    tasks = []
     users_per_client = int(len(users)/len(clients))
-    for i in range(len(clients)+1):
-        if i == len(clients):
-            client = clients[i-1]
-        else:
-            client = clients[i]
+    for i in range(len(clients)):
+        low = i*users_per_client
+        high = len(users) if i == len(clients) -1 else low + users_per_client
+        client = clients[i]
         global peerErrorCount
         if peerErrorCount >=10 and i == len(clients):
             print(f'Peer Flood Error for more than 10 users, Try Later resuming the Job with Job Id: {job_id}')
@@ -86,27 +92,33 @@ def send_message_pre(job_id):
             peerErrorCount = 0
             client.disconnect()
             continue
-       
-        thread_handler_with_users(users[i*users_per_client: (i*users_per_client)+users_per_client], message, client, job_id)
+        tasks.append(thread_handler_with_users(users[low:high], message, client, job_id))
+    await asyncio.gather(*tasks)
+    
+
+async def sample(i):
+    print(i)
+    await asyncio.sleep(10)
 
 
-
-def thread_handler_with_users(users, message, client, job_id):
-    for user in users:    
+async def thread_handler_with_users(users, message, client, job_id):
+    c  = await client.get_me()
+    for user in users:  
         user_id = int(user[0])
         user_hash = int(user[1])
         jd_id = user[2]
         receiver = InputPeerUser(user_id, user_hash)
-        status = send_message(receiver, message, client)
+        status = await send_message(receiver, message, client)
         db.update_job_details_user_status(jd_id, status)
-        print('Sleeping 15 secs')
-        time.sleep(15)
+        print(f'{c.phone} sending to {user[3]}')
+        print('Wait 15 secs')
+        await asyncio.sleep(15)
     return True
 
 
-def send_message(receiver,message,client):
+async def send_message(receiver,message,client):
     try:
-        client.send_message(receiver, message)
+        await client.send_message(receiver, message)
         return 'Success'
     except PeerFloodError:
         global peerErrorCount
@@ -115,6 +127,7 @@ def send_message(receiver,message,client):
     except Exception as e:
         return e
 
+# https://t.me/testgrp2357
 
 def app():
     print("1. Send Message to Users in a Group")
@@ -135,7 +148,7 @@ def app():
         else:
             print('Invalid Choice')
             app()
-        
+        # target = 'https://t.me/testgroup2332'
         c = TelegramClient(f'sessions/{sessions[0][0]}',  3910389 , '86f861352f0ab76a251866059a6adbd6')
         c.start(sessions[0][0])
         try:
