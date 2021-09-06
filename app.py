@@ -48,6 +48,15 @@ for a in sessions:
 
 def get_message(group_id, group_title):
     message = str(input("Enter the Message to be sent: "))
+    message = """
+    Welcome to UNIMOON! It's an amazing  ETH based  project where holders will be rewarded with UNI! This will be a fair launch with no team tokens. Roadmap includes DEX, Staking, Farming, Unimoon tools. 
+
+    Please join us on our journey to moon https://t.me/unimoonofficial
+
+    🌐 Official Website - Coming soon
+    ☎️Join our telegram - https://t.me/unimoonofficial
+    🐦Follow us on twitter -  https://twitter.com/unimoon10
+    """
     job_id = db.create_job(f"Message to Group Users {group_title}", group_id,group_title,message)
     print(f"\nJob Created to Send message to Group Users {group_title}\n")
     print(f"Refer to the Job Id: {job_id} for resuming the job later.")

@@ -158,7 +158,7 @@ class DB:
     
     def delete_account(self, AccountNumber):
         self.conn.execute(f'''
-            DELETE FROM Account where AccountNumber = "{AccountNumber}"
+            DELETE FROM Accounts where AccountNumber = "{AccountNumber}"
         ''')
         self.conn.commit()
     
