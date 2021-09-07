@@ -2,3 +2,4 @@ venv/
 sessions/
 __pycache__
 tg-bot.db
+get_messages.py
